@@ -59,7 +59,6 @@ def get_url(short_id, logger_error, cur):
             finds = re.findall("window.__INITIAL_STATE__=(.*?);\(function", script.text)
             find = finds[0].replace("undefined", "null")
             json_obj = json.loads(find)
-            # 快手录制使用最低画质,我要录制的主播一般只有这一种画质
             playUrls = json_obj["liveroom"]["playList"][0]["liveStream"]["playUrls"]
             # 保证主播开播
             if len(playUrls) > 0:

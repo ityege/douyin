@@ -175,10 +175,7 @@ def remove_task(cur):
                 continue
             print("运行中任务:", end="")
             for task in tasks:
-                id1 = task[0]
                 name = task[1]
-                process = task[2]
-                platform = task[3]
                 print(f"{name}", end="\t")
             print()
 
