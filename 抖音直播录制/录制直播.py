@@ -49,15 +49,15 @@ process = subprocess.Popen(command,
                            text=True)
 cur.execute(f'''
 INSERT INTO luzhi.film_status (
-	id,
-	film_up,
-	film_status,
-	record_command,
-	record_film_path,
-	record_process_id,
-	record_time_start_unix,
-	record_time_start_string,
-	logic_delete
+    id,
+    film_up,
+    film_status,
+    record_command,
+    record_film_path,
+    record_process_id,
+    record_time_start_unix,
+    record_time_start_string,
+    logic_delete
 )
 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);
 ''', (film_id, sub_path, '正在录制', command, output_file_path, process.pid, start_time,
@@ -69,8 +69,15 @@ cur.execute("INSERT INTO luzhi.subprocess_status (id,status,film_up,index,logic_
 logger.info(
     f"视频录制开始：{sub_path},视频id：{film_id},录制命令：{command},进程id:{process.pid},输出目录：{output_file_path},进程id：{process.pid}，开始录制时间：{tools.format_time_string(start_time)}")
 # 等待子进程结束
-# 当子进程没有结束，则循环等待
-process.wait()
+# 增加强行停止的逻辑
+is_stop = False
+while process.poll() is None:
+    time.sleep(10)
+    cur.execute("SELECT status from luzhi.subprocess_status  where id= %s", (film_id,))
+    if cur.fetchone()[0] == 'stop' and is_stop is False:
+        process.kill()
+        logger.info("直播录制被强制停止,由于进程必须强制停止才可以停止,输出文件损坏.")
+        is_stop = True
 # 等待进程释放文件占用
 end_time = tools.get_current_time2()
 # 计算执行时
@@ -92,22 +99,22 @@ cur.execute(f'''
 UPDATE luzhi.film_status
 SET
     film_status = '录制结束',
-	record_time_end_unix = %s,
-	record_time_end_string = %s,
-	record_spend_time_unix = %s,
-	record_spend_time_string = %s
+    record_time_end_unix = %s,
+    record_time_end_string = %s,
+    record_spend_time_unix = %s,
+    record_spend_time_string = %s
 WHERE
-	id = %s
+    id = %s
 ''', (end_time, tools.format_time_string(end_time), execution_time, formatted_execute_time, film_id))
 if film_time < 1800:
     cur.execute(f'''
     INSERT INTO luzhi.short_film (
-    	id,
-    	film_up,
-    	path,
-    	film_length_unix,
-    	film_length_string,
-    	logic_delete
+        id,
+        film_up,
+        path,
+        film_length_unix,
+        film_length_string,
+        logic_delete
     )
     VALUES (%s,%s,%s,%s,%s,%s);
     ''', (film_id, sub_path, output_file_path, film_time,
@@ -123,4 +130,3 @@ with open("log/record_over.txt", "a") as f:
     f.write(f"{tools.get_current_time3()}->{film_id}->{film_time}->{sub_path}->{formatted_film_time}\n")
 
 conn.close()
-log
