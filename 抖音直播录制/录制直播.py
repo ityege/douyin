@@ -79,7 +79,9 @@ def stop_record(process_local, logger_local):
     logger_local.info("录制超时强制停止")
 
 
-threading.Thread(target=stop_record, args=(process, logger)).start()
+guard_process = threading.Thread(target=stop_record, args=(process, logger))
+guard_process.daemon = True
+guard_process.start()
 
 # 增加强行停止的逻辑
 is_stop = False
