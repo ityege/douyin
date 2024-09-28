@@ -23,16 +23,16 @@ logger_error = tools.get_transcode_log_conf("log/record_auto_error.log")
 is_debug = False
 
 
-def exception_hook(exctype, value, traceback):
+def exception_hook(exctype, value, traceback_local):
     # 写入日志
-    logger_error.error("异常信息:", exc_info=(exctype, value, traceback))
+    logger_error.error("异常信息:", exc_info=(exctype, value, traceback_local))
 
 
 # 设置全局异常处理
 sys.excepthook = exception_hook
 
 
-def run_task(task_info, cur):
+def run_task(task_info, cur_local):
     global tasks, logger_info, exit_tasks, is_debug, logger_error
     if is_debug:
         return "程序处于调试状态,不运行任务"
@@ -52,13 +52,13 @@ def run_task(task_info, cur):
         url = None
         try:
             if platform == "douyin":
-                url = get_url_douyin.get_url(id1, name, logger_info, cur)
+                url = get_url_douyin.get_url(id1, name, logger_info, cur_local)
             elif platform == "bilibili":
                 url = get_url_bilibili.get_url(id1)
             elif platform == "kuaishou":
-                url = get_url_kuaishou.get_url(id1, logger_error, cur)
+                url = get_url_kuaishou.get_url(id1, logger_error, cur_local)
             elif platform == "正能量":
-                url = get_url_kuaishou.get_url(id1, logger_error, cur)
+                url = get_url_kuaishou.get_url(id1, logger_error, cur_local)
 
         except Exception as e:
             # 使用traceback模块获取堆栈跟踪信息
@@ -90,25 +90,25 @@ def run_task(task_info, cur):
         return "程序处于录制状态,不重复录制"
 
 
-def run_now(cur, conn):
+def run_now(cur_local):
     global tasks, logger_info, exit_tasks
     while True:
-        cur.execute(
+        cur_local.execute(
             "select value from luzhi.conf where program = 'douyin_record' and key = 'run_now_is_log'")
-        run_now_is_log = cur.fetchone()[0]
-        cur.execute(
+        run_now_is_log = cur_local.fetchone()[0]
+        cur_local.execute(
             "select id,name,platform from luzhi.auto_record where run_now = 1 ")
-        auto_records = cur.fetchall()
+        auto_records = cur_local.fetchall()
         if run_now_is_log == '1':
             print("run_now 获取到列表:", len(auto_records), auto_records)
             logger_info.info(f"run_now 获取到列表:{len(auto_records)},{auto_records}")
         for auto_record in auto_records:
-            result = run_task(auto_record, cur)
+            result = run_task(auto_record, cur_local)
             if run_now_is_log == '1':
                 print(f"run now 启动任务{auto_record}返回结果:{result}")
                 logger_info.info(f"run now 启动任务{auto_record}返回结果:{result}")
             if result == "程序处于录制状态,不重复录制" or result == "任务添加到队列成功":
-                cur.execute(
+                cur_local.execute(
                     "UPDATE luzhi.auto_record SET run_now = 0 WHERE id = %s and platform = %s",
                     (auto_record[0], auto_record[2]))
                 if run_now_is_log == '1':
@@ -120,23 +120,23 @@ def run_now(cur, conn):
         time.sleep(10)
 
 
-def monitor_task(cur):
+def monitor_task(cur_local):
     global tasks, logger_info, exit_tasks
     while True:
         time.sleep(10)
         copied_tuichu_tasks = copy.deepcopy(exit_tasks)
         for tuichu_task in copied_tuichu_tasks:
             id1 = tuichu_task[0]
-            cur.execute(
+            cur_local.execute(
                 "select logic_delete from luzhi.auto_record where id = %s",
                 (id1,))
-            result = cur.fetchone()
+            result = cur_local.fetchone()
             if result is not None:
                 logic_delete = result[0]
             else:
                 logic_delete = 1
             if logic_delete == 0:
-                run_task(tuichu_task, cur)
+                run_task(tuichu_task, cur_local)
             try:
                 lock.acquire()
                 exit_tasks.remove(tuichu_task)
@@ -145,7 +145,7 @@ def monitor_task(cur):
 
 
 # 这个线程从任务队列中移除任务
-def remove_task(cur):
+def remove_task(cur_local):
     global tasks, logger_info, exit_tasks
     while True:
         time.sleep(10)
@@ -166,9 +166,9 @@ def remove_task(cur):
                     exit_tasks.append((id1, name, platform))
                 finally:
                     lock.release()
-        cur.execute(
+        cur_local.execute(
             "select value from luzhi.conf where program = 'douyin_record' and key='list_task_is_log' ")
-        list_task_is_log = cur.fetchone()[0]
+        list_task_is_log = cur_local.fetchone()[0]
         if list_task_is_log == "1":
             print("当前调度任务数量:", len(tasks))
             if len(tasks) == 0:
@@ -180,38 +180,38 @@ def remove_task(cur):
             print()
 
 
-def add_task(cur):
+def add_task(cur_local):
     global tasks, logger_info, exit_tasks
 
     while True:
         # 获取到所有的url
 
-        cur.execute(
+        cur_local.execute(
             "select value from luzhi.conf where program = 'record' and key='isstop' ")
-        is_stop = cur.fetchone()[0]
+        is_stop = cur_local.fetchone()[0]
         if is_stop == '1':
             if len(tasks) == 0:
                 sys.exit(0)
-            cur.execute(
+            cur_local.execute(
                 "select value from luzhi.conf where program = 'douyin_record' and key = 'add_task_is_log'")
-            add_task_is_log = cur.fetchone()[0]
+            add_task_is_log = cur_local.fetchone()[0]
             if add_task_is_log == '1':
                 print("调度处于停止,不新增任务")
                 logger_info.info("调度处于停止,不新增任务")
         else:
-            cur.execute(
+            cur_local.execute(
                 "select id,name,platform from luzhi.auto_record where logic_delete = 0")
-            auto_records = cur.fetchall()
+            auto_records = cur_local.fetchall()
             start_time = tools.get_current_time2()
             logger_info.info("开始遍历自动录制任务")
-            cur.execute(
+            cur_local.execute(
                 "select value from luzhi.conf where program = 'douyin_record' and key = 'add_task_is_log'")
-            add_task_is_log = cur.fetchone()[0]
+            add_task_is_log = cur_local.fetchone()[0]
             if add_task_is_log == '1':
                 print(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
                 logger_info.info(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
             for auto_record in auto_records:
-                result = run_task(auto_record, cur)
+                result = run_task(auto_record, cur_local)
                 if add_task_is_log == '1':
                     print(f"add task 启动任务 {auto_record} 结果{result}")
                     logger_info.info(f"add task 启动任务 {auto_record} 结果{result}")
@@ -224,9 +224,9 @@ def add_task(cur):
         time.sleep(400)
 
 
-conn = tools.connect_db(True)
-cur = conn.cursor()
-t0 = threading.Thread(target=add_task, args=(cur,))
+conn0 = tools.connect_db(True)
+cur0 = conn0.cursor()
+t0 = threading.Thread(target=add_task, args=(cur0,))
 t0.start()
 conn1 = tools.connect_db(True)
 cur1 = conn1.cursor()
@@ -238,7 +238,7 @@ t2 = threading.Thread(target=monitor_task, args=(cur2,))
 t2.start()
 conn3 = tools.connect_db(True)
 cur3 = conn1.cursor()
-t3 = threading.Thread(target=run_now, args=(cur3, conn3))
+t3 = threading.Thread(target=run_now, args=(cur3,))
 t3.start()
 # 阻塞主线程运行
 t0.join()
