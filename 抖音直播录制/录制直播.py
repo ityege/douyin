@@ -4,6 +4,7 @@ import tools
 import time
 import sys
 import json
+import threading
 
 conn = tools.connect_db(True)
 cur = conn.cursor()
@@ -68,7 +69,18 @@ cur.execute("INSERT INTO luzhi.subprocess_status (id,status,film_up,index,logic_
 # 记录日志
 logger.info(
     f"视频录制开始：{sub_path},视频id：{film_id},录制命令：{command},进程id:{process.pid},输出目录：{output_file_path},进程id：{process.pid}，开始录制时间：{tools.format_time_string(start_time)}")
-# 等待子进程结束
+
+
+# 创建子线程,当超过10小时就强制停止录制
+def stop_record(process_local, logger_local):
+    logger_local.info("录制开始计时")
+    time.sleep(10 * 60 * 60)
+    process_local.kill()
+    logger_local.info("录制超时强制停止")
+
+
+threading.Thread(target=stop_record, args=(process, logger)).start()
+
 # 增加强行停止的逻辑
 is_stop = False
 while process.poll() is None:
