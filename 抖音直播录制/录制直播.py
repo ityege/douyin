@@ -4,7 +4,6 @@ import tools
 import time
 import sys
 import json
-import threading
 
 conn = tools.connect_db(True)
 cur = conn.cursor()
@@ -39,9 +38,17 @@ output_file_path = os.path.join(download_path, sub_path, film_time) + ".mp4"
 # 命令
 # b站直接要伪装浏览器,直接ffmpeg会被拒绝
 if platform == 'bilibili':
-    command = f'wget --header="Accept:application/json, text/plain, */*" --header="Accept-Encoding:gzip, deflate, br" --header="Accept-Language:zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2" --header="Origin:https://live.bilibili.com" --header="Referer:https://live.bilibili.com/{short_id}" --header="User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0" "{url}" -O "{output_file_path}"'
+    command = (f'wget --timeout=30s'
+               f'--header="Accept:application/json, text/plain, */*" '
+               f'--header="Accept-Encoding:gzip, deflate, br" '
+               f'--header="Accept-Language:zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2" '
+               f'--header="Origin:https://live.bilibili.com" '
+               f'--header="Referer:https://live.bilibili.com/{short_id}" '
+               f'--header="User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0" '
+               f'"{url}" '
+               f'-O "{output_file_path}"')
 else:
-    command = f"ffmpeg -i  \"{url}\" -c copy -y \"{output_file_path}\""
+    command = f"ffmpeg -timeout 30000000 -i  \"{url}\" -c copy -y \"{output_file_path}\""
 start_time = tools.get_current_time2()
 log = open(f"./record_tmp_path/{film_time}_{sub_path}.log", "w")
 process = subprocess.Popen(command,
@@ -68,20 +75,11 @@ cur.execute("INSERT INTO luzhi.subprocess_status (id,status,film_up,index,logic_
 
 # 记录日志
 logger.info(
-    f"视频录制开始：{sub_path},视频id：{film_id},录制命令：{command},进程id:{process.pid},输出目录：{output_file_path},进程id：{process.pid}，开始录制时间：{tools.format_time_string(start_time)}")
+    f"视频录制开始：{sub_path},视频id：{film_id},"
+    f"录制命令：{command},进程id:{process.pid},"
+    f"输出目录：{output_file_path},进程id：{process.pid}，"
+    f"开始录制时间：{tools.format_time_string(start_time)}")
 
-
-# 创建子线程,当超过10小时就强制停止录制
-def stop_record(process_local, logger_local):
-    logger_local.info("录制开始计时")
-    time.sleep(10 * 60 * 60)
-    process_local.kill()
-    logger_local.info("录制超时强制停止")
-
-
-guard_process = threading.Thread(target=stop_record, args=(process, logger))
-guard_process.daemon = True
-guard_process.start()
 
 # 增加强行停止的逻辑
 is_stop = False
@@ -137,7 +135,9 @@ cur.execute("UPDATE luzhi.subprocess_status SET status=%s ,film_length_unix=%s,f
             ('录制结束', film_time, formatted_film_time, film_id))
 
 logger.info(
-    f"视频录制结束：{sub_path},输出目录：{output_file_path},开始录制时间：{tools.format_time_string(start_time)}，结束录制时间：{tools.format_time_string(end_time)}，录制时长：{formatted_execute_time}")
+    f"视频录制结束：{sub_path},输出目录：{output_file_path},"
+    f"开始录制时间：{tools.format_time_string(start_time)}，结束录制时间：{tools.format_time_string(end_time)}，"
+    f"录制时长：{formatted_execute_time}")
 # 输出到控制台
 logger.info(f"视频长度为: {formatted_film_time}")
 with open("log/record_over.txt", "a") as f:
