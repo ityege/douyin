@@ -59,7 +59,11 @@ def get_url(short_id, logger_error, cur):
             finds = re.findall("window.__INITIAL_STATE__=(.*?);\(function", script.text)
             find = finds[0].replace("undefined", "null")
             json_obj = json.loads(find)
-            playUrls = json_obj["liveroom"]["playList"][0]["liveStream"]["playUrls"]
+            liveStream = json_obj["liveroom"]["playList"][0]["liveStream"]
+            if "playUrls" in liveStream:
+                playUrls = liveStream["playUrls"]
+            else:
+                return None
             # 保证主播开播
             if len(playUrls) > 0:
                 representation = playUrls[0]["adaptationSet"]["representation"]
