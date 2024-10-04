@@ -12,7 +12,7 @@
  Target Server Version : 140013
  File Encoding         : 65001
 
- Date: 21/09/2024 06:38:06
+ Date: 03/10/2024 16:04:19
 */
 
 
@@ -92,7 +92,8 @@ CREATE TABLE "paqu"."film_status" (
   "download_id" int8,
   "is_download_success" int2,
   "status" varchar COLLATE "pg_catalog"."default",
-  "desc1" varchar COLLATE "pg_catalog"."default"
+  "desc1" varchar COLLATE "pg_catalog"."default",
+  "aweme_id" varchar COLLATE "pg_catalog"."default"
 )
 ;
 COMMENT ON COLUMN "paqu"."film_status"."id" IS '视频或者图片唯一id';
@@ -106,6 +107,7 @@ COMMENT ON COLUMN "paqu"."film_status"."download_id" IS '下载id';
 COMMENT ON COLUMN "paqu"."film_status"."is_download_success" IS '是否下载成功';
 COMMENT ON COLUMN "paqu"."film_status"."status" IS '状态';
 COMMENT ON COLUMN "paqu"."film_status"."desc1" IS '文案';
+COMMENT ON COLUMN "paqu"."film_status"."aweme_id" IS '抖音资源标识';
 
 -- ----------------------------
 -- Table structure for paqu_list
@@ -138,14 +140,14 @@ UNION ALL
 -- ----------------------------
 ALTER SEQUENCE "paqu"."download_over_id_seq"
 OWNED BY "paqu"."download_over"."id";
-SELECT setval('"paqu"."download_over_id_seq"', 300, true);
+SELECT setval('"paqu"."download_over_id_seq"', 330, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "paqu"."paqu_list_id_seq"
 OWNED BY "paqu"."paqu_list"."id";
-SELECT setval('"paqu"."paqu_list_id_seq"', 487, true);
+SELECT setval('"paqu"."paqu_list_id_seq"', 517, true);
 
 -- ----------------------------
 -- Primary Key structure for table conf

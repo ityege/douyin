@@ -27,6 +27,7 @@ def parse_response(response, cur, conn, user_id, logger, id_1, download_list):
         video = aweme["video"]
         # 这个是文案
         desc = aweme["desc"]
+        aweme_id = aweme["aweme_id"]
         # 这个是视频
         if images == None:
             # 遍历码率
@@ -39,9 +40,9 @@ def parse_response(response, cur, conn, user_id, logger, id_1, download_list):
                     videao_download_url = bit_rate_2["play_addr"]["url_list"][0]
                     element_id = str(uuid.uuid4())
                     cur.execute(
-                        "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1) values (%s,%s,%s,%s,%s,%s,%s)",
-                        (element_id, user_id, videao_download_url, "视频", id_1, "未下载", desc))
-                    download_list.append((element_id, videao_download_url, "视频", desc))
+                        "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1,aweme_id) values (%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (element_id, user_id, videao_download_url, "视频", id_1, "未下载", desc, aweme_id))
+                    download_list.append((element_id, videao_download_url, "视频", desc, aweme_id))
                     # 提交事务
 
                     # logger.info(f"添加下载任务成功,id:{element_id},up主id:{user_id},url:{videao_download_url}")
@@ -53,9 +54,9 @@ def parse_response(response, cur, conn, user_id, logger, id_1, download_list):
                 image_download_url = image["download_url_list"][0]
                 element_id = str(uuid.uuid4())
                 cur.execute(
-                    "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1) values (%s,%s,%s,%s,%s,%s,%s)",
-                    (element_id, user_id, image_download_url, "图片", id_1, "未下载", desc))
-                download_list.append((element_id, image_download_url, "图片", desc))
+                    "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1,aweme_id) values (%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (element_id, user_id, image_download_url, "图片", id_1, "未下载", desc, aweme_id))
+                download_list.append((element_id, image_download_url, "图片", desc, aweme_id))
                 # logger.info(f"添加下载任务成功,id:{element_id},up主id:{user_id},url:{image_download_url}")
 
 
@@ -221,11 +222,12 @@ def download_video(url, download_path, user_id, logger, cur, conn, id_1, film_up
     logger.info("开始保存文案")
     with open(os.path.join(str(download_path_sub), '文案.csv'), 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(("视频id", "文案"))
+        writer.writerow(("视频id", "文案", "抖音资源标识"))
         # 假设我们只想将集合中的每个元素作为单独的一行写入
         for element in download_list:
             element_id = element[0]
             desc = element[3]
-            writer.writerow((element_id, desc))
+            aweme_id = element[4]
+            writer.writerow((element_id, desc, "aweme_id:"+aweme_id))
     print("保存文案结束")
     logger.info("保存文案结束")
