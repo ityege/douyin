@@ -74,11 +74,10 @@ def get_url(short_id, logger_error, cur):
                         return element["url"]
     return None
 
-
+# 快手有反爬措施 总是报请求频繁
 if __name__ == "__main__":
     logger = tools.get_transcode_log_conf("debug.log")
     conn = tools.connect_db(True)
     cur = conn.cursor()
     print(get_url("zhangmingyang88888", logger, cur))
-    # print(get_url("3xuvrfygnh45ajc", logger, cur))
 

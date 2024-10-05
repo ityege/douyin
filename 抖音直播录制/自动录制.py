@@ -123,7 +123,7 @@ def run_now(cur_local):
 def monitor_task(cur_local):
     global tasks, logger_info, exit_tasks
     while True:
-        time.sleep(10)
+        time.sleep(30)
         copied_tuichu_tasks = copy.deepcopy(exit_tasks)
         for tuichu_task in copied_tuichu_tasks:
             id1 = tuichu_task[0]
@@ -221,7 +221,7 @@ def add_task(cur_local):
             end_time = tools.get_current_time2()
             logger_info.info("结束遍历自动录制任务")
             logger_info.info(f"{start_time}--{end_time}--{tools.format_spend_time_string(end_time - start_time)}")
-        time.sleep(400)
+        time.sleep(600)
 
 
 conn0 = tools.connect_db(True)
