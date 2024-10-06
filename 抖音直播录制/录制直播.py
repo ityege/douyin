@@ -38,7 +38,7 @@ output_file_path = os.path.join(download_path, sub_path, film_time) + ".mp4"
 # 命令
 # b站直接要伪装浏览器,直接ffmpeg会被拒绝
 if platform == 'bilibili':
-    command = (f'wget --timeout=30s'
+    command = (f'wget --timeout=30s '
                f'--header="Accept:application/json, text/plain, */*" '
                f'--header="Accept-Encoding:gzip, deflate, br" '
                f'--header="Accept-Language:zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2" '
