@@ -107,7 +107,9 @@ def run_now(cur_local):
             if run_now_is_log == '1':
                 print(f"run now 启动任务{auto_record}返回结果:{result}")
                 logger_info.info(f"run now 启动任务{auto_record}返回结果:{result}")
-            if result == "程序处于录制状态,不重复录制" or result == "任务添加到队列成功":
+            if result == "获取url为空指针":
+                print(f"run_now {auto_record} 获取到url为空,请排查!!!!")
+            if result == "程序处于录制状态,不重复录制" or result == "任务添加到队列成功" or result == "获取url为空指针":
                 cur_local.execute(
                     "UPDATE luzhi.auto_record SET run_now = 0 WHERE id = %s and platform = %s",
                     (auto_record[0], auto_record[2]))
