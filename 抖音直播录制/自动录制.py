@@ -125,7 +125,7 @@ def run_now(cur_local):
 def monitor_task(cur_local):
     global tasks, logger_info, exit_tasks
     while True:
-        time.sleep(30)
+        time.sleep(60)
         copied_tuichu_tasks = copy.deepcopy(exit_tasks)
         for tuichu_task in copied_tuichu_tasks:
             id1 = tuichu_task[0]
