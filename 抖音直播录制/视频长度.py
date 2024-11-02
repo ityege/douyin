@@ -23,17 +23,17 @@ for root, dirs, files in os.walk(download_path):
             info = json.loads(output.decode('utf-8'))
             execution_time = float(info['format']['duration'])
             if execution_time < 1800:
-                print(execution_time/60, file)
                 parent_dir = os.path.basename(os.path.dirname(file))
                 file_name = os.path.basename(file)
-                print(f"文件移动,视频长度小于半小时:{execution_time/60}", file, "->",
-                      f"record_tmp_path/{parent_dir}_{file_name}")
-                shutil.move(file, f"record_tmp_path/{parent_dir}_{file_name}")
+                if "短视频" not in file:
+                    print(execution_time / 60, file)
+                    print(f"文件短移动,视频长度小于半小时:{execution_time / 60}", file, "->",
+                          f"record_tmp_path/{parent_dir}_{file_name}")
+                    shutil.move(file, f"record_tmp_path/{parent_dir}_{file_name}")
         except Exception as e:
             print(e)
             print(f"删除视频{file}")
             parent_dir = os.path.basename(os.path.dirname(file))
             file_name = os.path.basename(file)
-            print("文件移动:",file,"->", f"record_tmp_path/{parent_dir}_{file_name}",file=sys.stderr)
-            shutil.move(file,f"record_tmp_path/{parent_dir}_{file_name}")
-
+            print("文件损坏移动:", file, "->", f"record_tmp_path/{parent_dir}_{file_name}", file=sys.stderr)
+            shutil.move(file, f"record_tmp_path/{parent_dir}_{file_name}")
