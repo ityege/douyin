@@ -9,9 +9,8 @@ import get_url_kuaishou
 import time
 import copy
 import traceback
+from datetime import datetime
 
-# 创建一个锁
-lock = threading.Lock()
 # (id,name,process,platform)
 tasks = []
 # (id,name,platform)
@@ -75,12 +74,7 @@ def run_task(task_info, cur_local):
                 f"python.exe 录制直播.py \"{name}\" \"{url}\" \"{film_time}\" \"-100\" {platform} {id1}",
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT, shell=True)
-            try:
-                lock.acquire()
-                tasks.append((id1, name, process, platform))
-
-            finally:
-                lock.release()
+            tasks.append((id1, name, process, platform))
             print(f"任务{id1}:{name}:{platform}已加入调度")
             logger_info.info(f"任务{id1}:{name}:{platform}已加入调度")
             return "任务添加到队列成功"
@@ -125,7 +119,7 @@ def run_now(cur_local):
 def monitor_task(cur_local):
     global tasks, logger_info, exit_tasks
     while True:
-        time.sleep(60)
+        time.sleep(120)
         copied_tuichu_tasks = copy.deepcopy(exit_tasks)
         for tuichu_task in copied_tuichu_tasks:
             id1 = tuichu_task[0]
@@ -139,11 +133,7 @@ def monitor_task(cur_local):
                 logic_delete = 1
             if logic_delete == 0:
                 run_task(tuichu_task, cur_local)
-            try:
-                lock.acquire()
-                exit_tasks.remove(tuichu_task)
-            finally:
-                lock.release()
+            exit_tasks.remove(tuichu_task)
 
 
 # 这个线程从任务队列中移除任务
@@ -157,17 +147,14 @@ def remove_task(cur_local):
             process = task[2]
             platform = task[3]
             if process.poll() is not None:
-                try:
-                    lock.acquire()
-                    tasks.remove(task)
-                    print(f"任务{id1}:{name}:{platform}已完成")
-                    logger_info.info(f"任务{id1}:{name}:{platform}已完成")
-                    if task[2].returncode != 0:
-                        print(f"任务{id1}:{name}:{platform}异常退出")
-                        logger_info.info(f"任务{id1}:{name}:{platform}异常退出")
-                    exit_tasks.append((id1, name, platform))
-                finally:
-                    lock.release()
+                tasks.remove(task)
+                print(f"任务{id1}:{name}:{platform}已完成")
+                logger_info.info(f"任务{id1}:{name}:{platform}已完成")
+                if task[2].returncode != 0:
+                    print(f"任务{id1}:{name}:{platform}异常退出")
+                    logger_info.info(f"任务{id1}:{name}:{platform}异常退出")
+                exit_tasks.append((id1, name, platform))
+
         cur_local.execute(
             "select value from luzhi.conf where program = 'douyin_record' and key='list_task_is_log' ")
         list_task_is_log = cur_local.fetchone()[0]
@@ -223,7 +210,17 @@ def add_task(cur_local):
             end_time = tools.get_current_time2()
             logger_info.info("结束遍历自动录制任务")
             logger_info.info(f"{start_time}--{end_time}--{tools.format_spend_time_string(end_time - start_time)}")
-        time.sleep(600)
+        # 获取当前时间
+        now = datetime.now()
+        # 获取当前小时
+        current_hour = now.hour
+        # 判断是否在 18 点到 24 点之间
+        if 18 <= current_hour < 24:
+            # 这个时间段很多主播开播,随眠1分钟
+            time.sleep(60)
+        else:
+            # 不是这个时间段睡眠10分钟
+            time.sleep(600)
 
 
 conn0 = tools.connect_db(True)
