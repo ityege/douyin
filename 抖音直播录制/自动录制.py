@@ -24,7 +24,7 @@ is_debug = False
 
 def exception_hook(exctype, value, traceback_local):
     # 写入日志
-    logger_error.error("异常信息:", exc_info=(exctype, value, traceback_local))
+    logger_error.error("全局异常信息:", exc_info=(exctype, value, traceback_local))
 
 
 # 设置全局异常处理
@@ -117,110 +117,133 @@ def run_now(cur_local):
 
 
 def monitor_task(cur_local):
-    global tasks, logger_info, exit_tasks
+    global tasks, logger_info, exit_tasks, logger_error
     while True:
-        time.sleep(120)
-        copied_tuichu_tasks = copy.deepcopy(exit_tasks)
-        for tuichu_task in copied_tuichu_tasks:
-            id1 = tuichu_task[0]
-            cur_local.execute(
-                "select logic_delete from luzhi.auto_record where id = %s",
-                (id1,))
-            result = cur_local.fetchone()
-            if result is not None:
-                logic_delete = result[0]
-            else:
-                logic_delete = 1
-            if logic_delete == 0:
-                run_task(tuichu_task, cur_local)
-            exit_tasks.remove(tuichu_task)
+        try:
+            time.sleep(120)
+            copied_tuichu_tasks = copy.deepcopy(exit_tasks)
+            for tuichu_task in copied_tuichu_tasks:
+                id1 = tuichu_task[0]
+                cur_local.execute(
+                    "select logic_delete from luzhi.auto_record where id = %s",
+                    (id1,))
+                result = cur_local.fetchone()
+                if result is not None:
+                    logic_delete = result[0]
+                else:
+                    logic_delete = 1
+                if logic_delete == 0:
+                    run_task(tuichu_task, cur_local)
+                exit_tasks.remove(tuichu_task)
+        except Exception as e:
+            # 使用traceback模块获取堆栈跟踪信息
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            # 格式化堆栈跟踪信息
+            tb_info = ''.join(traceback.format_tb(exc_traceback))
+            # 记录错误和堆栈跟踪信息到日志
+            logger_error.error("monitor_task 线程出现问题: %s\n%s", e, tb_info)
 
 
 # 这个线程从任务队列中移除任务
 def remove_task(cur_local):
-    global tasks, logger_info, exit_tasks
+    global tasks, logger_info, logger_error, exit_tasks
     while True:
-        time.sleep(10)
-        for task in tasks:
-            id1 = task[0]
-            name = task[1]
-            process = task[2]
-            platform = task[3]
-            if process.poll() is not None:
-                tasks.remove(task)
-                print(f"任务{id1}:{name}:{platform}已完成")
-                logger_info.info(f"任务{id1}:{name}:{platform}已完成")
-                if task[2].returncode != 0:
-                    print(f"任务{id1}:{name}:{platform}异常退出")
-                    logger_info.info(f"任务{id1}:{name}:{platform}异常退出")
-                exit_tasks.append((id1, name, platform))
-
-        cur_local.execute(
-            "select value from luzhi.conf where program = 'douyin_record' and key='list_task_is_log' ")
-        list_task_is_log = cur_local.fetchone()[0]
-        if list_task_is_log == "1":
-            print("当前调度任务数量:", len(tasks))
-            if len(tasks) == 0:
-                continue
-            print("运行中任务:", end="")
+        try:
+            time.sleep(10)
             for task in tasks:
+                id1 = task[0]
                 name = task[1]
-                print(f"{name}", end="\t")
-            print()
+                process = task[2]
+                platform = task[3]
+                if process.poll() is not None:
+                    tasks.remove(task)
+                    print(f"任务{id1}:{name}:{platform}已完成")
+                    logger_info.info(f"任务{id1}:{name}:{platform}已完成")
+                    if task[2].returncode != 0:
+                        print(f"任务{id1}:{name}:{platform}异常退出")
+                        logger_info.info(f"任务{id1}:{name}:{platform}异常退出")
+                    exit_tasks.append((id1, name, platform))
+
+            cur_local.execute(
+                "select value from luzhi.conf where program = 'douyin_record' and key='list_task_is_log' ")
+            list_task_is_log = cur_local.fetchone()[0]
+            if list_task_is_log == "1":
+                print("当前调度任务数量:", len(tasks))
+                if len(tasks) == 0:
+                    continue
+                print("运行中任务:", end="")
+                for task in tasks:
+                    name = task[1]
+                    print(f"{name}", end="\t")
+                print()
+        except Exception as e:
+            # 使用traceback模块获取堆栈跟踪信息
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            # 格式化堆栈跟踪信息
+            tb_info = ''.join(traceback.format_tb(exc_traceback))
+            # 记录错误和堆栈跟踪信息到日志
+            logger_error.error("remove_task 线程出现问题: %s\n%s", e, tb_info)
 
 
 def add_task(cur_local):
-    global tasks, logger_info, exit_tasks
+    global tasks, logger_info, exit_tasks, logger_error
 
     while True:
         # 获取到所有的url
-
-        cur_local.execute(
-            "select value from luzhi.conf where program = 'record' and key='isstop' ")
-        is_stop = cur_local.fetchone()[0]
-        if is_stop == '1':
-            if len(tasks) == 0:
-                sys.exit(0)
+        try:
             cur_local.execute(
-                "select value from luzhi.conf where program = 'douyin_record' and key = 'add_task_is_log'")
-            add_task_is_log = cur_local.fetchone()[0]
-            if add_task_is_log == '1':
-                print("调度处于停止,不新增任务")
-                logger_info.info("调度处于停止,不新增任务")
-        else:
-            cur_local.execute(
-                "select id,name,platform from luzhi.auto_record where logic_delete = 0")
-            auto_records = cur_local.fetchall()
-            start_time = tools.get_current_time2()
-            logger_info.info("开始遍历自动录制任务")
-            cur_local.execute(
-                "select value from luzhi.conf where program = 'douyin_record' and key = 'add_task_is_log'")
-            add_task_is_log = cur_local.fetchone()[0]
-            if add_task_is_log == '1':
-                print(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
-                logger_info.info(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
-            for auto_record in auto_records:
-                result = run_task(auto_record, cur_local)
+                "select value from luzhi.conf where program = 'record' and key='isstop' ")
+            is_stop = cur_local.fetchone()[0]
+            if is_stop == '1':
+                if len(tasks) == 0:
+                    sys.exit(0)
+                cur_local.execute(
+                    "select value from luzhi.conf where program = 'douyin_record' and key = 'add_task_is_log'")
+                add_task_is_log = cur_local.fetchone()[0]
                 if add_task_is_log == '1':
-                    print(f"add task 启动任务 {auto_record} 结果{result}")
-                    logger_info.info(f"add task 启动任务 {auto_record} 结果{result}")
-            if add_task_is_log == '1':
-                print(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
-                logger_info.info(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
-            end_time = tools.get_current_time2()
-            logger_info.info("结束遍历自动录制任务")
-            logger_info.info(f"{start_time}--{end_time}--{tools.format_spend_time_string(end_time - start_time)}")
-        # 获取当前时间
-        now = datetime.now()
-        # 获取当前小时
-        current_hour = now.hour
-        # 判断是否在 18 点到 24 点之间
-        if 18 <= current_hour < 24:
-            # 这个时间段很多主播开播,随眠1分钟
-            time.sleep(60)
-        else:
-            # 不是这个时间段睡眠10分钟
-            time.sleep(600)
+                    print("调度处于停止,不新增任务")
+                    logger_info.info("调度处于停止,不新增任务")
+            else:
+                cur_local.execute(
+                    "select id,name,platform from luzhi.auto_record where logic_delete = 0")
+                auto_records = cur_local.fetchall()
+                start_time = tools.get_current_time2()
+                logger_info.info("开始遍历自动录制任务")
+                cur_local.execute(
+                    "select value from luzhi.conf where program = 'douyin_record' and key = 'add_task_is_log'")
+                add_task_is_log = cur_local.fetchone()[0]
+                if add_task_is_log == '1':
+                    print(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
+                    logger_info.info(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
+                for auto_record in auto_records:
+                    result = run_task(auto_record, cur_local)
+                    if add_task_is_log == '1':
+                        print(f"add task 启动任务 {auto_record} 结果{result}")
+                        logger_info.info(f"add task 启动任务 {auto_record} 结果{result}")
+                if add_task_is_log == '1':
+                    print(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
+                    logger_info.info(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
+                end_time = tools.get_current_time2()
+                logger_info.info("结束遍历自动录制任务")
+                logger_info.info(f"{start_time}--{end_time}--{tools.format_spend_time_string(end_time - start_time)}")
+            # 获取当前时间
+            now = datetime.now()
+            # 获取当前小时
+            current_hour = now.hour
+            # 判断是否在 18 点到 24 点之间
+            if 18 <= current_hour < 24:
+                # 这个时间段很多主播开播,随眠1分钟
+                time.sleep(60)
+            else:
+                # 不是这个时间段睡眠10分钟
+                time.sleep(600)
+        except Exception as e:
+            # 使用traceback模块获取堆栈跟踪信息
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            # 格式化堆栈跟踪信息
+            tb_info = ''.join(traceback.format_tb(exc_traceback))
+            # 记录错误和堆栈跟踪信息到日志
+            logger_error.error("add_task 线程出现问题: %s\n%s", e, tb_info)
 
 
 conn0 = tools.connect_db(True)
