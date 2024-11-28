@@ -168,7 +168,7 @@ def remove_task(cur_local):
                 "select value from luzhi.conf where program = 'douyin_record' and key='list_task_is_log' ")
             list_task_is_log = cur_local.fetchone()[0]
             if list_task_is_log == "1":
-                print("当前调度任务数量:", len(tasks))
+                print(f"{tools.get_current_time3()}:当前调度任务数量:", len(tasks))
                 if len(tasks) == 0:
                     continue
                 print("运行中任务:", end="")
