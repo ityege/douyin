@@ -3,7 +3,6 @@ import time
 from bs4 import BeautifulSoup
 import json
 import requests
-import traceback
 import tools
 import re
 
@@ -34,7 +33,7 @@ def get_url(uid,name,logger_info,cur):
     soup = BeautifulSoup(html_str, 'lxml')
     scripts = soup.find_all('script')
     for script in scripts:
-        if "h265" in script.text and "origin" in script.text:
+        if "h265" in script.text and "origin" in script.text and "main" in script.text and "flv" in script.text:
             finds=re.findall(r"self.__pace_f.push\(\[1,(.*?)\]\)",script.text)
             json_obj=json.loads(finds[0])
             finds=re.findall(r"\"origin\":\{\"main\":\{\"flv\":\"(.*?)\"",json_obj)
