@@ -66,7 +66,8 @@ def get_url(short_id, logger_error, cur):
                 return None
             # 保证主播开播
             if len(playUrls) > 0:
-                representation = playUrls[0]["adaptationSet"]["representation"]
+                # print(playUrls)
+                representation = playUrls["h264"]["adaptationSet"]["representation"]
                 # 找到最高画质
                 max_bitrate = max([element["bitrate"] for element in representation])
                 for element in representation:
