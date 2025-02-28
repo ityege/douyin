@@ -48,7 +48,7 @@ if platform == 'bilibili':
                f'"{url}" '
                f'-O "{output_file_path}"')
 else:
-    command = f"ffmpeg -timeout 30000000 -i  \"{url}\" -c copy -y \"{output_file_path}\""
+    command = f"ffmpeg -timeout 120000000 -i  \"{url}\" -c copy -y \"{output_file_path}\""
 start_time = tools.get_current_time2()
 log = open(f"./record_tmp_path/{film_time}_{sub_path}.log", "w")
 process = subprocess.Popen(command,
