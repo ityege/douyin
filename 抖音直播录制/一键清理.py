@@ -10,8 +10,8 @@ else:
     print("删除强行停止视频成功")
 
 # 删除短视频
-conn=tools.connect_db(True)
-cursor=conn.cursor()
+conn = tools.connect_db(True)
+cursor = conn.cursor()
 cursor.execute("update luzhi.short_film set if_delete='删除' where if_delete is null")
 result_code = os.system("python 删除短视频.py")
 if result_code != 0:
