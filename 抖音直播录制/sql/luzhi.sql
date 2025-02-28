@@ -12,7 +12,7 @@
  Target Server Version : 140013
  File Encoding         : 65001
 
- Date: 21/09/2024 06:35:31
+ Date: 01/03/2025 00:11:06
 */
 
 
@@ -36,7 +36,11 @@ CREATE TABLE "luzhi"."auto_record" (
   "name" varchar COLLATE "pg_catalog"."default",
   "logic_delete" int2,
   "platform" varchar COLLATE "pg_catalog"."default" NOT NULL,
-  "run_now" int2
+  "run_now" int2,
+  "core_guard" int2,
+  "core_guard_start_time" varchar COLLATE "pg_catalog"."default",
+  "core_guard_end_time" varchar COLLATE "pg_catalog"."default",
+  "last_record_time" varchar COLLATE "pg_catalog"."default"
 )
 ;
 COMMENT ON COLUMN "luzhi"."auto_record"."id" IS '抖音用户id';
@@ -118,6 +122,15 @@ COMMENT ON COLUMN "luzhi"."film_status"."transcode_spend_time_unix" IS '转码�
 COMMENT ON COLUMN "luzhi"."film_status"."transcode_spend_time_string" IS '转码时长字符串';
 COMMENT ON COLUMN "luzhi"."film_status"."logic_delete" IS '逻辑删除 0未删除 1删除';
 COMMENT ON TABLE "luzhi"."film_status" IS '视频录制状态表';
+
+-- ----------------------------
+-- Table structure for options
+-- ----------------------------
+DROP TABLE IF EXISTS "luzhi"."options";
+CREATE TABLE "luzhi"."options" (
+  "option" varchar COLLATE "pg_catalog"."default"
+)
+;
 
 -- ----------------------------
 -- Table structure for short_film
