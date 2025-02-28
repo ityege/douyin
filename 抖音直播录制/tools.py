@@ -95,14 +95,3 @@ def get_transcode_log_conf(log_file):
     # 设置日志级别
     logger.setLevel(logging.INFO)
     return logger
-
-def check_file_zhanyong(output_file_path_str, record_log_str):
-    try:
-        with open(output_file_path_str, "r"):
-            pass
-        with open(record_log_str, "r"):
-            pass
-    except Exception as e:
-        return True
-    else:
-        return False
