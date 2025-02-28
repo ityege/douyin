@@ -65,8 +65,7 @@ def get_url(short_id, logger_error, cur):
             else:
                 return None
             # 保证主播开播
-            if len(playUrls) > 0:
-                # print(playUrls)
+            if len(playUrls["h264"]) > 0:
                 representation = playUrls["h264"]["adaptationSet"]["representation"]
                 # 找到最高画质
                 max_bitrate = max([element["bitrate"] for element in representation])
@@ -74,6 +73,7 @@ def get_url(short_id, logger_error, cur):
                     if element["bitrate"] == max_bitrate:
                         return element["url"]
     return None
+
 
 # 快手有反爬措施 总是报请求频繁
 if __name__ == "__main__":
