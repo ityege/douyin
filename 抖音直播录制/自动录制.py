@@ -7,14 +7,11 @@ import get_url_douyin
 import get_url_bilibili
 import get_url_kuaishou
 import time
-import copy
 import traceback
-from datetime import datetime
+from datetime import datetime, time as dtime, timedelta
 
 # (id,name,process,platform)
 tasks = []
-# (id,name,platform)
-exit_tasks = []
 
 logger_info = tools.get_transcode_log_conf("log/record_auto_info.log")
 logger_error = tools.get_transcode_log_conf("log/record_auto_error.log")
@@ -31,8 +28,9 @@ def exception_hook(exctype, value, traceback_local):
 sys.excepthook = exception_hook
 
 
+# 执行任务函数
 def run_task(task_info, cur_local):
-    global tasks, logger_info, exit_tasks, is_debug, logger_error
+    global tasks, logger_info, is_debug, logger_error
     if is_debug:
         return "程序处于调试状态,不运行任务"
     id1 = task_info[0]
@@ -75,6 +73,9 @@ def run_task(task_info, cur_local):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT, shell=True)
             tasks.append((id1, name, process, platform))
+            cur_local.execute(
+                "UPDATE luzhi.auto_record SET last_record_time = %s WHERE id = %s and platform = %s",
+                (film_time, id1, platform))
             print(f"任务{id1}:{name}:{platform}已加入调度")
             logger_info.info(f"任务{id1}:{name}:{platform}已加入调度")
             return "任务添加到队列成功"
@@ -84,8 +85,9 @@ def run_task(task_info, cur_local):
         return "程序处于录制状态,不重复录制"
 
 
+# 立即拉起函数
 def run_now(cur_local):
-    global tasks, logger_info, exit_tasks
+    global tasks, logger_info
     while True:
         cur_local.execute(
             "select value from luzhi.conf where program = 'douyin_record' and key = 'run_now_is_log'")
@@ -116,37 +118,47 @@ def run_now(cur_local):
         time.sleep(10)
 
 
-def monitor_task(cur_local):
-    global tasks, logger_info, exit_tasks, logger_error
+# 核心守护函数
+def core_guard(cur_local):
+    global tasks, logger_info
     while True:
-        try:
-            time.sleep(120)
-            copied_tuichu_tasks = copy.deepcopy(exit_tasks)
-            for tuichu_task in copied_tuichu_tasks:
-                id1 = tuichu_task[0]
-                cur_local.execute(
-                    "select logic_delete from luzhi.auto_record where id = %s",
-                    (id1,))
-                result = cur_local.fetchone()
-                if result is not None:
-                    logic_delete = result[0]
-                else:
-                    logic_delete = 1
-                if logic_delete == 0:
-                    run_task(tuichu_task, cur_local)
-                exit_tasks.remove(tuichu_task)
-        except Exception as e:
-            # 使用traceback模块获取堆栈跟踪信息
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            # 格式化堆栈跟踪信息
-            tb_info = ''.join(traceback.format_tb(exc_traceback))
-            # 记录错误和堆栈跟踪信息到日志
-            logger_error.error("monitor_task 线程出现问题: %s\n%s", e, tb_info)
+        cur_local.execute(
+            "select value from luzhi.conf where program = 'douyin_record' and key = 'core_guard_is_log'")
+        core_guard_is_log = cur_local.fetchone()[0]
+        cur_local.execute(
+            "select id,name,platform,core_guard_start_time,core_guard_end_time from luzhi.auto_record where "
+            "core_guard = 1")
+        auto_records = cur_local.fetchall()
+        if core_guard_is_log == '1':
+            print("core_guard 获取到列表:", len(auto_records), auto_records)
+            logger_info.info(f"core_guard 获取到列表:{len(auto_records)},{auto_records}")
+        for auto_record in auto_records:
+            # 获取当前时间
+            core_guard_start_time = auto_record[3]
+            core_guard_end_time = auto_record[4]
+            # 将时间字符串转换为time对象
+            start_time = dtime(int(core_guard_start_time.split(":")[0]), int(core_guard_start_time.split(":")[1]))
+            end_time = dtime(int(core_guard_end_time.split(":")[0]), int(core_guard_end_time.split(":")[1]))
+            # 获取当前时间
+            current_time = datetime.now().time()
+            # 比较当前时间是否在指定范围内
+            if start_time <= current_time <= end_time:
+                # 函数中会判断是否正在运行
+                result = run_task(auto_record, cur_local)
+                if core_guard_is_log == '1':
+                    print(f"core_guard 启动任务{auto_record}返回结果:{result}")
+                    logger_info.info(f"core_guard 启动任务{auto_record}返回结果:{result}")
+            else:
+                print(f"core_guard {auto_record}:不在守护时间范围内:{start_time} - {end_time},当前时间:{current_time}")
+        if core_guard_is_log == '1':
+            print(f"core_guard 启动任务{auto_records}结束")
+            logger_info.info(f"core_guard 启动任务{auto_records}结束")
+        time.sleep(60 * 5)
 
 
 # 这个线程从任务队列中移除任务
 def remove_task(cur_local):
-    global tasks, logger_info, logger_error, exit_tasks
+    global tasks, logger_info, logger_error
     while True:
         try:
             time.sleep(10)
@@ -162,8 +174,9 @@ def remove_task(cur_local):
                     if task[2].returncode != 0:
                         print(f"任务{id1}:{name}:{platform}异常退出")
                         logger_info.info(f"任务{id1}:{name}:{platform}异常退出")
-                    exit_tasks.append((id1, name, platform))
-
+                    # 失败的任务2分钟后重新拉起来
+                    delay = timedelta(minutes=2).total_seconds()
+                    threading.Timer(delay, run_task, args=((id1, name, platform), cur_local)).start()
             cur_local.execute(
                 "select value from luzhi.conf where program = 'douyin_record' and key='list_task_is_log' ")
             list_task_is_log = cur_local.fetchone()[0]
@@ -185,8 +198,9 @@ def remove_task(cur_local):
             logger_error.error("remove_task 线程出现问题: %s\n%s", e, tb_info)
 
 
+# 添加任务
 def add_task(cur_local):
-    global tasks, logger_info, exit_tasks, logger_error
+    global tasks, logger_info, logger_error
 
     while True:
         # 获取到所有的url
@@ -254,16 +268,16 @@ conn1 = tools.connect_db(True)
 cur1 = conn1.cursor()
 t1 = threading.Thread(target=remove_task, args=(cur1,))
 t1.start()
-conn2 = tools.connect_db(True)
-cur2 = conn1.cursor()
-t2 = threading.Thread(target=monitor_task, args=(cur2,))
-t2.start()
 conn3 = tools.connect_db(True)
-cur3 = conn1.cursor()
+cur3 = conn3.cursor()
 t3 = threading.Thread(target=run_now, args=(cur3,))
 t3.start()
+conn4 = tools.connect_db(True)
+cur4 = conn4.cursor()
+t4 = threading.Thread(target=core_guard, args=(cur4,))
+t4.start()
 # 阻塞主线程运行
 t0.join()
 t1.join()
-t2.join()
 t3.join()
+t4.join()
