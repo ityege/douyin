@@ -1,5 +1,4 @@
 import random
-import subprocess
 import sys
 import threading
 import tools
@@ -9,13 +8,13 @@ import get_url_kuaishou
 import time
 import traceback
 from datetime import datetime, time as dtime, timedelta
+from live_record import live_record
 
-# (id,name,process,platform)
+# (id,name,worker_thread,platform)
 tasks = []
 
 logger_info = tools.get_transcode_log_conf("log/record_auto_info.log")
 logger_error = tools.get_transcode_log_conf("log/record_auto_error.log")
-# task_info (id,name,platform)
 is_debug = False
 
 
@@ -67,12 +66,10 @@ def run_task(task_info, cur_local):
 
         if url is not None:
             film_time = tools.get_current_time1()
-
-            process = subprocess.Popen(
-                f"python.exe 录制直播.py \"{name}\" \"{url}\" \"{film_time}\" \"-100\" {platform} {id1}",
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.STDOUT, shell=True)
-            tasks.append((id1, name, process, platform))
+            worker_thread = threading.Thread(target=live_record, args=(
+                f"{name}", url, film_time, platform, id1))
+            worker_thread.start()
+            tasks.append((id1, name, worker_thread, platform))
             cur_local.execute(
                 "UPDATE luzhi.auto_record SET last_record_time = %s WHERE id = %s and platform = %s",
                 (film_time, id1, platform))
@@ -97,12 +94,12 @@ def run_now(cur_local):
         auto_records = cur_local.fetchall()
         if run_now_is_log == '1':
             print("run_now 获取到列表:", len(auto_records), auto_records)
-            logger_info.info(f"run_now 获取到列表:{len(auto_records)},{auto_records}")
+            # logger_info.info(f"run_now 获取到列表:{len(auto_records)},{auto_records}")
         for auto_record in auto_records:
             result = run_task(auto_record, cur_local)
             if run_now_is_log == '1':
                 print(f"run now 启动任务{auto_record}返回结果:{result}")
-                logger_info.info(f"run now 启动任务{auto_record}返回结果:{result}")
+                # logger_info.info(f"run now 启动任务{auto_record}返回结果:{result}")
             if result == "获取url为空指针":
                 print(f"run_now {auto_record} 获取到url为空,请排查!!!!")
             if result == "程序处于录制状态,不重复录制" or result == "任务添加到队列成功" or result == "获取url为空指针":
@@ -111,10 +108,10 @@ def run_now(cur_local):
                     (auto_record[0], auto_record[2]))
                 if run_now_is_log == '1':
                     print(f"run now 任务{auto_record} 更新数据库完成")
-                    logger_info.info(f"run now 任务{auto_record} 更新数据库完成")
+                    # logger_info.info(f"run now 任务{auto_record} 更新数据库完成")
         if run_now_is_log == '1':
             print(f"run_now 启动任务{auto_records}结束")
-            logger_info.info(f"run_now 启动任务{auto_records}结束")
+            # logger_info.info(f"run_now 启动任务{auto_records}结束")
         time.sleep(10)
 
 
@@ -131,7 +128,7 @@ def core_guard(cur_local):
         auto_records = cur_local.fetchall()
         if core_guard_is_log == '1':
             print("core_guard 获取到列表:", len(auto_records), auto_records)
-            logger_info.info(f"core_guard 获取到列表:{len(auto_records)},{auto_records}")
+            # logger_info.info(f"core_guard 获取到列表:{len(auto_records)},{auto_records}")
         for auto_record in auto_records:
             # 获取当前时间
             core_guard_start_time = auto_record[3]
@@ -147,12 +144,12 @@ def core_guard(cur_local):
                 result = run_task(auto_record, cur_local)
                 if core_guard_is_log == '1':
                     print(f"core_guard 启动任务{auto_record}返回结果:{result}")
-                    logger_info.info(f"core_guard 启动任务{auto_record}返回结果:{result}")
+                    # logger_info.info(f"core_guard 启动任务{auto_record}返回结果:{result}")
             else:
                 print(f"core_guard {auto_record}:不在守护时间范围内:{start_time} - {end_time},当前时间:{current_time}")
         if core_guard_is_log == '1':
             print(f"core_guard 启动任务{auto_records}结束")
-            logger_info.info(f"core_guard 启动任务{auto_records}结束")
+            # logger_info.info(f"core_guard 启动任务{auto_records}结束")
         time.sleep(60 * 5)
 
 
@@ -165,15 +162,12 @@ def remove_task(cur_local):
             for task in tasks:
                 id1 = task[0]
                 name = task[1]
-                process = task[2]
+                worker_thread = task[2]
                 platform = task[3]
-                if process.poll() is not None:
+                if not worker_thread.is_alive():
                     tasks.remove(task)
                     print(f"任务{id1}:{name}:{platform}已完成")
                     logger_info.info(f"任务{id1}:{name}:{platform}已完成")
-                    if task[2].returncode != 0:
-                        print(f"任务{id1}:{name}:{platform}异常退出")
-                        logger_info.info(f"任务{id1}:{name}:{platform}异常退出")
                     # 失败的任务2分钟后重新拉起来
                     delay = timedelta(minutes=2).total_seconds()
                     threading.Timer(delay, run_task, args=((id1, name, platform), cur_local)).start()
@@ -216,7 +210,7 @@ def add_task(cur_local):
                 add_task_is_log = cur_local.fetchone()[0]
                 if add_task_is_log == '1':
                     print("调度处于停止,不新增任务")
-                    logger_info.info("调度处于停止,不新增任务")
+                    # logger_info.info("调度处于停止,不新增任务")
             else:
                 cur_local.execute(
                     "select id,name,platform from luzhi.auto_record where logic_delete = 0")
@@ -228,15 +222,15 @@ def add_task(cur_local):
                 add_task_is_log = cur_local.fetchone()[0]
                 if add_task_is_log == '1':
                     print(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
-                    logger_info.info(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
+                    # logger_info.info(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
                 for auto_record in auto_records:
                     result = run_task(auto_record, cur_local)
                     if add_task_is_log == '1':
                         print(f"add task 启动任务 {auto_record} 结果{result}")
-                        logger_info.info(f"add task 启动任务 {auto_record} 结果{result}")
+                        # logger_info.info(f"add task 启动任务 {auto_record} 结果{result}")
                 if add_task_is_log == '1':
                     print(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
-                    logger_info.info(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
+                    # logger_info.info(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
                 end_time = tools.get_current_time2()
                 logger_info.info("结束遍历自动录制任务")
                 logger_info.info(f"{start_time}--{end_time}--{tools.format_spend_time_string(end_time - start_time)}")
