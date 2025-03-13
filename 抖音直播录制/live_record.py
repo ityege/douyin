@@ -12,7 +12,8 @@ def live_record(sub_path, url, film_time, platform, short_id):
     download_path = cur.fetchone()[0]
     cur.execute("select value from luzhi.conf where program='znl' and key='download_path'")
     download_path_znl = cur.fetchone()[0]
-    logger = tools.get_transcode_log_conf(f"./record_tmp_path/{film_time}_{sub_path}_自动录制_{platform}.log")
+    logger, file_handler = tools.get_transcode_log_conf(
+        f"./record_tmp_path/{film_time}_{sub_path}_自动录制_{platform}.log")
 
     if platform == '正能量':
         download_path = download_path_znl
@@ -130,3 +131,4 @@ def live_record(sub_path, url, film_time, platform, short_id):
         f.write(f"{tools.get_current_time3()}->{film_id}->{film_time}->{sub_path}->{formatted_film_time}\n")
 
     conn.close()
+    file_handler.close()

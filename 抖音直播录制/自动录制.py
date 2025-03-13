@@ -13,8 +13,8 @@ from live_record import live_record
 # (id,name,worker_thread,platform)
 tasks = []
 
-logger_info = tools.get_transcode_log_conf("log/record_auto_info.log")
-logger_error = tools.get_transcode_log_conf("log/record_auto_error.log")
+logger_info, file_handler_info = tools.get_transcode_log_conf("log/record_auto_info.log")
+logger_error, file_handler_error = tools.get_transcode_log_conf("log/record_auto_error.log")
 is_debug = False
 
 

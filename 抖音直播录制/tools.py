@@ -94,4 +94,4 @@ def get_transcode_log_conf(log_file):
 
     # 设置日志级别
     logger.setLevel(logging.INFO)
-    return logger
+    return logger, file_handler
