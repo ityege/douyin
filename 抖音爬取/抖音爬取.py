@@ -8,7 +8,7 @@ conn = tools.connect_db(True)
 cur = conn.cursor()
 cur.execute("select value from paqu.conf where program='douyin_paqu' and key='download_path'")
 download_path = cur.fetchone()[0]
-cur.execute("select id,film_up,url from paqu.paqu_list where logic_delete=0 ")
+cur.execute("select id,film_up,url from paqu.paqu_list where logic_delete=0 and platform='douyin' ")
 all_tasks = cur.fetchall()
 if len(all_tasks) == 0:
     print("没有需要下载的任务")
@@ -27,8 +27,8 @@ for film_up in all_tasks:
     douyin_download.download_video(url, download_path, user_id, logger, cur, conn, id_1, film_up_name)
     #  下载完成
     cur.execute("delete from paqu.paqu_list where id = %s", (id_1,))
-    cur.execute("INSERT INTO paqu.download_over (film_up,url,time_unix,time_string) values (%s,%s,%s,%s)",
-                (film_up_name, url, tools.get_current_time2(), tools.get_current_time3()))
+    cur.execute("INSERT INTO paqu.download_over (film_up,url,time_unix,time_string,platform) values (%s,%s,%s,%s,%s)",
+                (film_up_name, url, tools.get_current_time2(), tools.get_current_time3(), "douyin"))
     # 提交事务
     end_time = time.time()
     run_time = end_time - start_time

@@ -12,7 +12,7 @@
  Target Server Version : 140013
  File Encoding         : 65001
 
- Date: 03/10/2024 16:04:19
+ Date: 16/03/2025 21:08:49
 */
 
 
@@ -68,7 +68,8 @@ CREATE TABLE "paqu"."download_over" (
   "film_up" varchar COLLATE "pg_catalog"."default",
   "url" varchar COLLATE "pg_catalog"."default",
   "time_unix" float8,
-  "time_string" varchar COLLATE "pg_catalog"."default"
+  "time_string" varchar COLLATE "pg_catalog"."default",
+  "platform" varchar COLLATE "pg_catalog"."default"
 )
 ;
 COMMENT ON COLUMN "paqu"."download_over"."id" IS '主键';
@@ -117,7 +118,8 @@ CREATE TABLE "paqu"."paqu_list" (
   "id" int8 NOT NULL DEFAULT nextval('"paqu".paqu_list_id_seq'::regclass),
   "film_up" varchar COLLATE "pg_catalog"."default" NOT NULL,
   "url" varchar COLLATE "pg_catalog"."default" NOT NULL,
-  "logic_delete" int2
+  "logic_delete" int2,
+  "platform" varchar COLLATE "pg_catalog"."default"
 )
 ;
 COMMENT ON COLUMN "paqu"."paqu_list"."id" IS '录制任务列表';
@@ -126,28 +128,18 @@ COMMENT ON COLUMN "paqu"."paqu_list"."url" IS '主页url';
 COMMENT ON COLUMN "paqu"."paqu_list"."logic_delete" IS '是否删除0未删除1删除';
 
 -- ----------------------------
--- View structure for paqu_list_all
--- ----------------------------
-DROP VIEW IF EXISTS "paqu"."paqu_list_all";
-CREATE VIEW "paqu"."paqu_list_all" AS  SELECT download_over.film_up
-   FROM paqu.download_over
-UNION ALL
- SELECT paqu_list.film_up
-   FROM paqu.paqu_list;
-
--- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "paqu"."download_over_id_seq"
 OWNED BY "paqu"."download_over"."id";
-SELECT setval('"paqu"."download_over_id_seq"', 330, true);
+SELECT setval('"paqu"."download_over_id_seq"', 552, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "paqu"."paqu_list_id_seq"
 OWNED BY "paqu"."paqu_list"."id";
-SELECT setval('"paqu"."paqu_list_id_seq"', 517, true);
+SELECT setval('"paqu"."paqu_list_id_seq"', 1723, true);
 
 -- ----------------------------
 -- Primary Key structure for table conf

@@ -12,7 +12,7 @@
  Target Server Version : 140013
  File Encoding         : 65001
 
- Date: 21/09/2024 06:38:36
+ Date: 16/03/2025 21:07:45
 */
 
 
@@ -42,9 +42,11 @@ COMMENT ON TABLE "paqu"."conf" IS '配置文件表';
 -- ----------------------------
 INSERT INTO "paqu"."conf" VALUES ('yasuo', NULL, 'limit', NULL, '100', NULL);
 INSERT INTO "paqu"."conf" VALUES ('douyin_paqu', '抖音爬取', 'is_headless', '', '0', NULL);
-INSERT INTO "paqu"."conf" VALUES ('yasuo', NULL, 'dest', '', 'F:\douyin_7z', NULL);
 INSERT INTO "paqu"."conf" VALUES ('douyin_paqu', '抖音爬取', 'download_path', NULL, 'F:\douyin', NULL);
 INSERT INTO "paqu"."conf" VALUES ('yasuo', NULL, 'source', '', 'F:\douyin', NULL);
+INSERT INTO "paqu"."conf" VALUES ('yasuo', NULL, 'dest', '', 'F:\douyin_7z', NULL);
+INSERT INTO "paqu"."conf" VALUES ('bilibili_paqu', 'b站爬取', 'cookie', NULL, '', 'b站爬取cookie');
+INSERT INTO "paqu"."conf" VALUES ('bilibili_paqu', 'b站爬取', 'download_path', NULL, 'F:\bilibili', 'p站视频下载路径');
 
 -- ----------------------------
 -- Primary Key structure for table conf
