@@ -1,0 +1,16 @@
+SELECT
+	* 
+FROM
+	(
+	SELECT
+		film_up,
+		url,
+		COUNT ( * ) OVER ( PARTITION BY film_up, url ) AS NUM,
+		time_string 
+	FROM
+		( SELECT film_up, url, time_string FROM download_over UNION ALL SELECT film_up, url, NULL AS time_string FROM paqu_list ) TMP1 
+	) TMP2 
+ORDER BY
+	NUM DESC,
+	film_up DESC 
+	LIMIT 1000
