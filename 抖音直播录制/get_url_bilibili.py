@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 
@@ -17,8 +19,10 @@ def get_url(room_id):
         url = f"https://api.live.bilibili.com/room/v1/Room/playUrl?cid={room_id}&quality=4&platform=web"
         res = requests.get(url, headers=headers)
         json_obj = res.json()
-        return json_obj["data"]["durl"][0]["url"]
+        # with open("durl.json", "w") as f:
+        #     f.write(json.dumps(json_obj, ensure_ascii=False))
+        return json_obj["data"]["durl"][1]["url"]
     return None
 
 if __name__ == "__main__":
-    print(get_url("25304523"))
+    print(get_url(""))
