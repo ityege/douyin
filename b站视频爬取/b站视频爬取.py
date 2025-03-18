@@ -31,7 +31,7 @@ for task in all_tasks:
     id_1 = task[0]
     film_up = task[1]
     mid = task[2]
-    download_path_sub = os.path.join(download_path, film_up)
+    download_path_sub = os.path.join(download_path, film_up + "_" + tools.get_current_time0())
     if not os.path.exists(download_path_sub):
         os.makedirs(download_path_sub)
     print(f"开始下载 id: {id_1} film_up:{film_up} mid:{mid}")
