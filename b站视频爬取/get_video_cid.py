@@ -1,7 +1,11 @@
 import requests
+import time
+import random
 
 
 def get_video_cids(work, headers, logger):
+    # 随机睡眠5到10秒,不能请求太频繁
+    time.sleep(random.randint(4, 8))
     bvid = work[1]
     response = requests.get("https://api.bilibili.com/x/player/pagelist?bvid=" + bvid, headers=headers)
     response = response.json()
