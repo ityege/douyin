@@ -29,6 +29,9 @@ def download_video(download_path_sub, bvid, cid, title, headers, logger):
             if response["code"] == 0:
                 download_url = response["data"]["durl"][0]["url"]
                 is_query_success = True
+            else:
+                print(f"{bvid}_{cid}:download_video:查询失败,返回结果:{response}")
+                logger.error(f"{bvid}_{cid}:download_video:查询失败,返回结果:{response}")
         except Exception as e:
             is_query_success = False
             ex = e
@@ -41,6 +44,10 @@ def download_video(download_path_sub, bvid, cid, title, headers, logger):
         if is_download_success:
             break
         try:
+            if download_url is None:
+                print(f"{bvid}_{cid}:download_video:下载失败,下载地址为空")
+                logger.error(f"{bvid}_{cid}:download_video:下载失败,下载地址为空")
+                break
             response = requests.get(download_url, stream=True, timeout=30, headers=headers)
             if response.status_code == 200:
                 with open(f"{download_path_sub}\\{bvid}_{cid}.mp4", "wb") as f:
