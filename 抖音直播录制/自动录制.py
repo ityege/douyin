@@ -93,24 +93,24 @@ def run_now(cur_local):
             "select id,name,platform from luzhi.auto_record where run_now = 1 ")
         auto_records = cur_local.fetchall()
         if run_now_is_log == '1':
-            print("run_now 获取到列表:", len(auto_records), auto_records)
+            print(f"{tools.get_current_time3()}:run_now 获取到列表:", len(auto_records), auto_records)
             # logger_info.info(f"run_now 获取到列表:{len(auto_records)},{auto_records}")
         for auto_record in auto_records:
             result = run_task(auto_record, cur_local)
             if run_now_is_log == '1':
-                print(f"run now 启动任务{auto_record}返回结果:{result}")
+                print(f"{tools.get_current_time3()}:run now 启动任务{auto_record}返回结果:{result}")
                 # logger_info.info(f"run now 启动任务{auto_record}返回结果:{result}")
             if result == "获取url为空指针":
-                print(f"run_now {auto_record} 获取到url为空,请排查!!!!")
+                print(f"{tools.get_current_time3()}:run_now {auto_record} 获取到url为空,请排查!!!!")
             if result == "程序处于录制状态,不重复录制" or result == "任务添加到队列成功" or result == "获取url为空指针":
                 cur_local.execute(
                     "UPDATE luzhi.auto_record SET run_now = 0 WHERE id = %s and platform = %s",
                     (auto_record[0], auto_record[2]))
                 if run_now_is_log == '1':
-                    print(f"run now 任务{auto_record} 更新数据库完成")
+                    print(f"{tools.get_current_time3()}:run now 任务{auto_record} 更新数据库完成")
                     # logger_info.info(f"run now 任务{auto_record} 更新数据库完成")
         if run_now_is_log == '1':
-            print(f"run_now 启动任务{auto_records}结束")
+            print(f"{tools.get_current_time3()}:run_now 启动任务{auto_records}结束")
             # logger_info.info(f"run_now 启动任务{auto_records}结束")
         time.sleep(10)
 
@@ -217,21 +217,23 @@ def add_task(cur_local):
                 auto_records = cur_local.fetchall()
                 start_time = tools.get_current_time2()
                 logger_info.info("开始遍历自动录制任务")
+                print(f"{tools.get_current_time3()}:开始遍历自动录制任务")
                 cur_local.execute(
                     "select value from luzhi.conf where program = 'douyin_record' and key = 'add_task_is_log'")
                 add_task_is_log = cur_local.fetchone()[0]
                 if add_task_is_log == '1':
-                    print(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
-                    # logger_info.info(f"add task start 任务数量{len(auto_records)} 任务:{auto_records}")
+                    print(f"{tools.get_current_time3()}:add task start 任务数量:{len(auto_records)} 任务:{auto_records}")
+                    # logger_info.info(f"add task start 任务数量:{len(auto_records)} 任务:{auto_records}")
                 for auto_record in auto_records:
                     result = run_task(auto_record, cur_local)
                     if add_task_is_log == '1':
-                        print(f"add task 启动任务 {auto_record} 结果{result}")
+                        print(f"{tools.get_current_time3()}:add task 启动任务 {auto_record} 结果{result}")
                         # logger_info.info(f"add task 启动任务 {auto_record} 结果{result}")
                 if add_task_is_log == '1':
-                    print(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
+                    print(f"{tools.get_current_time3()}:add task end 任务数量{len(auto_records)} 任务:{auto_records}")
                     # logger_info.info(f"add task end 任务数量{len(auto_records)} 任务:{auto_records}")
                 end_time = tools.get_current_time2()
+                print(f"{tools.get_current_time3()}:结束遍历自动录制任务")
                 logger_info.info("结束遍历自动录制任务")
                 logger_info.info(f"{start_time}--{end_time}--{tools.format_spend_time_string(end_time - start_time)}")
             # 获取当前时间
