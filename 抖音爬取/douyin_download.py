@@ -39,9 +39,9 @@ def parse_response(response, cur, conn, user_id, logger, id_1, download_list):
                 if bit_rate_2["bit_rate"] == max_bit_rate:
                     videao_download_url = bit_rate_2["play_addr"]["url_list"][0]
                     element_id = str(uuid.uuid4())
-                    cur.execute(
-                        "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1,aweme_id) values (%s,%s,%s,%s,%s,%s,%s,%s)",
-                        (element_id, user_id, videao_download_url, "视频", id_1, "未下载", desc, aweme_id))
+                    # cur.execute(
+                    #     "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1,aweme_id) values (%s,%s,%s,%s,%s,%s,%s,%s)",
+                    #     (element_id, user_id, videao_download_url, "视频", id_1, "未下载", desc, aweme_id))
                     download_list.append((element_id, videao_download_url, "视频", desc, aweme_id))
                     # 提交事务
 
@@ -53,9 +53,9 @@ def parse_response(response, cur, conn, user_id, logger, id_1, download_list):
             for image in images:
                 image_download_url = image["download_url_list"][0]
                 element_id = str(uuid.uuid4())
-                cur.execute(
-                    "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1,aweme_id) values (%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (element_id, user_id, image_download_url, "图片", id_1, "未下载", desc, aweme_id))
+                # cur.execute(
+                #     "INSERT INTO paqu.film_status (id,film_up_id,download_url,type1,download_id,status,desc1,aweme_id) values (%s,%s,%s,%s,%s,%s,%s,%s)",
+                #     (element_id, user_id, image_download_url, "图片", id_1, "未下载", desc, aweme_id))
                 download_list.append((element_id, image_download_url, "图片", desc, aweme_id))
                 # logger.info(f"添加下载任务成功,id:{element_id},up主id:{user_id},url:{image_download_url}")
 
@@ -167,20 +167,21 @@ def download_video(url, download_path, user_id, logger, cur, conn, id_1, film_up
                     is_download_success = False
                     ex = e
             if is_download_success:
-                cur.execute(
-                    "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s,is_download_success=%s,status=%s WHERE id=%s",
-                    (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 1, "已下载",
-                     element_id))
+                pass
+                # cur.execute(
+                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s,is_download_success=%s,status=%s WHERE id=%s",
+                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 1, "已下载",
+                #      element_id))
 
                 # logger.info(f"下载视频成功,id:{element_id},url:{download_url},path:{download_path_sub_sub}")
             else:
-                cur.execute(
-                    "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s,is_download_success=%s,status=%s WHERE id=%s",
-                    (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 0, "未下载",
-                     element_id))
+                # cur.execute(
+                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s,is_download_success=%s,status=%s WHERE id=%s",
+                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 0, "未下载",
+                #      element_id))
 
                 print(f"下载视频失败,id:{element_id},url:{download_url},原因:{ex}")
-                # logger.error(f"下载视频失败,id:{element_id},url:{download_url},原因:{ex}")
+                logger.error(f"下载视频失败,id:{element_id},url:{download_url},原因:{ex}")
 
 
         elif type1 == "图片":
@@ -202,19 +203,21 @@ def download_video(url, download_path, user_id, logger, cur, conn, id_1, film_up
                     is_download_success = False
                     ex = e
             if is_download_success:
-                cur.execute(
-                    "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s ,is_download_success=%s ,status=%s WHERE id=%s",
-                    (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 1, "已下载",
-                     element_id))
+                pass
+                # cur.execute(
+                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s ,is_download_success=%s ,status=%s WHERE id=%s",
+                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 1, "已下载",
+                #      element_id))
 
                 # logger.info(f"下载图片成功,id:{element_id},url:{download_url},path:{download_path_sub_sub}")
             else:
-                cur.execute(
-                    "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s ,is_download_success=%s ,status=%s WHERE id=%s",
-                    (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 0, "未下载",
-                     element_id))
+                # cur.execute(
+                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s ,is_download_success=%s ,status=%s WHERE id=%s",
+                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 0, "未下载",
+                #      element_id))
 
-                # print(f"下载图片失败,id:{element_id},url:{download_url},原因:{ex}")
+                print(f"下载图片失败,id:{element_id},url:{download_url},原因:{ex}")
+                logger.error(f"下载图片成功,id:{element_id},url:{download_url},path:{download_path_sub_sub}")
 
     print("下载视频和图片结束")
     logger.info("下载视频和图片结束")
@@ -228,6 +231,6 @@ def download_video(url, download_path, user_id, logger, cur, conn, id_1, film_up
             element_id = element[0]
             desc = element[3]
             aweme_id = element[4]
-            writer.writerow((element_id, desc, "aweme_id:"+aweme_id))
+            writer.writerow((element_id, desc, "aweme_id:" + aweme_id))
     print("保存文案结束")
     logger.info("保存文案结束")
