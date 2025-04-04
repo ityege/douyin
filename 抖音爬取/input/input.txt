@@ -14,3 +14,26 @@ ORDER BY
 	NUM DESC,
 	film_up DESC 
 	LIMIT 1000
+
+
+SELECT
+	*
+FROM
+	(
+	SELECT
+		film_up,
+		url
+	FROM
+		paqu.paqu_list
+	WHERE
+		film_up like '%%'
+		UNION ALL
+	SELECT
+		film_up,
+		url
+	FROM
+		paqu.download_over
+	WHERE
+	film_up like '%%'
+	AND time_unix > 1742745600
+	) TMP1
