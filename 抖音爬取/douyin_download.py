@@ -1,18 +1,18 @@
+import concurrent.futures
+import csv
 import os
-import shutil
 import sys
+import threading
 import time
 import uuid
-import csv
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 import requests
-
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from seleniumwire import webdriver
-from tqdm import tqdm
 
+import thread_pool_download
 import tools
 
 
@@ -138,87 +138,26 @@ def download_video(url, download_path, user_id, logger, cur, conn, id_1, film_up
     download_path_sub = os.path.join(download_path, sub_path)
     if not os.path.exists(download_path_sub):
         os.makedirs(download_path_sub)
-    for element in tqdm(download_list, desc='下载视频和图片中', unit='视频/图片'):
-        element_id = element[0]
-        download_url = element[1]
-        type1 = element[2]
-
-        headers = {
-            # 可能需要添加额外的headers，如User-Agent等
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-            'referer': "https://www.douyin.com/",
-            'origin': "https://www.douyin.com"
-        }
-        if type1 == "视频":
-            download_path_sub_sub = os.path.join(str(download_path_sub), element_id + ".mp4")
-            is_download_success = False
-            ex = None
-            for i in range(5):
-                if is_download_success:
-                    break
-                try:
-                    response = requests.get(download_url, stream=True, timeout=30, headers=headers)
-                    if response.status_code == 200:
-                        with open(download_path_sub_sub, "wb") as f:
-                            response.raw.decode_content = True
-                            shutil.copyfileobj(response.raw, f)
-                        is_download_success = True
-                except Exception as e:
-                    is_download_success = False
-                    ex = e
-            if is_download_success:
-                pass
-                # cur.execute(
-                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s,is_download_success=%s,status=%s WHERE id=%s",
-                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 1, "已下载",
-                #      element_id))
-
-                # logger.info(f"下载视频成功,id:{element_id},url:{download_url},path:{download_path_sub_sub}")
-            else:
-                # cur.execute(
-                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s,is_download_success=%s,status=%s WHERE id=%s",
-                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 0, "未下载",
-                #      element_id))
-
-                print(f"下载视频失败,id:{element_id},url:{download_url},原因:{ex}")
-                logger.error(f"下载视频失败,id:{element_id},url:{download_url},原因:{ex}")
-
-
-        elif type1 == "图片":
-            download_path_sub_sub = os.path.join(str(download_path_sub), element_id + ".webp")
-            is_download_success = False
-            ex = None
-            for i in range(5):
-                if is_download_success:
-                    break
-                try:
-                    response = requests.get(download_url, stream=True, timeout=30, headers=headers)
-                    if response.status_code == 200:
-                        with open(download_path_sub_sub, "wb") as f:
-                            response.raw.decode_content = True
-                            shutil.copyfileobj(response.raw, f)
-
-                        is_download_success = True
-                except Exception as e:
-                    is_download_success = False
-                    ex = e
-            if is_download_success:
-                pass
-                # cur.execute(
-                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s ,is_download_success=%s ,status=%s WHERE id=%s",
-                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 1, "已下载",
-                #      element_id))
-
-                # logger.info(f"下载图片成功,id:{element_id},url:{download_url},path:{download_path_sub_sub}")
-            else:
-                # cur.execute(
-                #     "UPDATE paqu.film_status SET download_path=%s,download_time_unix=%s,download_time_string=%s ,is_download_success=%s ,status=%s WHERE id=%s",
-                #     (download_path_sub_sub, tools.get_current_time2(), tools.get_current_time3(), 0, "未下载",
-                #      element_id))
-
-                print(f"下载图片失败,id:{element_id},url:{download_url},原因:{ex}")
-                logger.error(f"下载图片成功,id:{element_id},url:{download_url},path:{download_path_sub_sub}")
-
+    # 使用线程池下载,最多10个线程同时下载
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = []
+        for element in download_list:
+            element_id = element[0]
+            download_url = element[1]
+            type1 = element[2]
+            future = executor.submit(thread_pool_download.thread_pool_download, element_id, download_url, type1,
+                                     download_path_sub,
+                                     logger)
+            futures.append(future)
+        # 启动监控线程
+        monitor_thread = threading.Thread(
+            target=thread_pool_download.monitor_remaining_tasks,
+            args=(futures,)
+        )
+        monitor_thread.start()
+        # 等待所有任务完成
+        concurrent.futures.wait(futures)
+        monitor_thread.join()
     print("下载视频和图片结束")
     logger.info("下载视频和图片结束")
     print("开始保存文案")
